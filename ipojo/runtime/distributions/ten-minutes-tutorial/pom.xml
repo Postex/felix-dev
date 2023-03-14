@@ -24,7 +24,7 @@
     <parent>
         <groupId>org.apache.felix</groupId>
         <artifactId>felix-parent</artifactId>
-        <version>2.1</version>
+        <version>8-SNAPSHOT</version>
         <relativePath>../../../../pom/pom.xml</relativePath>
     </parent>
 
@@ -195,23 +195,6 @@
                                     <type>zip</type>
                                 </artifact>
                             </artifacts>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>ianal-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>verify-legal-files</goal>
-                        </goals>
-                        <configuration>
-                            <!-- as it's not possible to configure the plugin to check files contained in the root of
-                            the zip file, we have to skip it -->
-                            <skip>true</skip>
                         </configuration>
                     </execution>
                 </executions>
