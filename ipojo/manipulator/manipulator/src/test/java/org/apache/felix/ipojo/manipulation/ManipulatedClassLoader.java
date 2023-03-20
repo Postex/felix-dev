@@ -25,20 +25,33 @@ import java.io.File;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * A classloader used to load manipulated classes.
  */
 public class ManipulatedClassLoader extends ClassLoader {
+    public static final Function<String, String> CLASS_ALREADY_EXISTS_EXCEPTION_MESSAGE = className ->
+            String.format("Class already exists: %s. Probably the class is already manipulated while that was not expected?", className);
 
     private String name;
     private byte[] clazz;
+    private Manipulator manipulator;
 
     private Map<String, byte[]> inner = new LinkedHashMap<String, byte[]>();
 
     public ManipulatedClassLoader(String name, byte[] clazz) {
+        this(name, clazz, null);
+    }
+
+    public ManipulatedClassLoader(String name, byte[] clazz, Manipulator manipulator) {
         this.name = name;
         this.clazz = clazz;
+        this.manipulator = manipulator;
+    }
+
+    public Manipulator getManipulator() {
+        return manipulator;
     }
 
     public byte[] get(String name) {
@@ -52,6 +65,9 @@ public class ManipulatedClassLoader extends ClassLoader {
     }
 
     public void addInnerClass(String name, byte[] clazz) {
+        if (inner.containsKey(name)) {
+            throw new IllegalStateException(CLASS_ALREADY_EXISTS_EXCEPTION_MESSAGE.apply(name));
+        }
         inner.put(name, clazz);
     }
 

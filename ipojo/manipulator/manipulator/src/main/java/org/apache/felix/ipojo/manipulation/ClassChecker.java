@@ -411,7 +411,16 @@ public class ClassChecker extends ClassVisitor implements Opcodes {
             return null;
         }
 
-
+        @Override
+        public void visitTypeInsn(int opcode, String type) {
+            if (m_method.isStatic() && (opcode & NEW) == NEW && m_inners.containsKey(type)) {
+                // this is the case for a static method which starts an (anonymous) inner class
+                // but due to that the method is static, the (anonymous) inner class has to be interpreted as static and
+                // thus not manipulated See PTX-9242
+                m_inners.remove(type);
+            }
+            super.visitTypeInsn(opcode, type);
+        }
     }
 
     /**

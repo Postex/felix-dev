@@ -114,6 +114,10 @@ public class MethodDescriptor {
         m_argsVarLength = argsVarLength;
     }
 
+    public boolean isStatic() {
+        return m_isStatic;
+    }
+
     /**
      * Add an annotation to the current method.
      * @param ann annotation to add

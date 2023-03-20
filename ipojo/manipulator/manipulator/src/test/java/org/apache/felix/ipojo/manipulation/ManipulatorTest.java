@@ -21,17 +21,23 @@ package org.apache.felix.ipojo.manipulation;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
+import org.apache.commons.io.IOUtils;
 import org.apache.felix.ipojo.InstanceManager;
 import org.apache.felix.ipojo.Pojo;
+import org.junit.Test;
 import org.mockito.Mockito;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.util.CheckClassAdapter;
+import test.StaticInnerClassWithOutsideFieldAccess;
 
 import java.io.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ManipulatorTest extends TestCase {
 
@@ -157,6 +163,126 @@ public class ManipulatorTest extends TestCase {
 
         Method method = cl.getMethod("doSomething", new Class[0]);
         Assert.assertEquals(((String) method.invoke(instance, new Object[0])), "test");
+    }
+
+    private byte[] getTestClassBytes(String className) throws Exception {
+        String classesPath = "target/test-classes/";
+        return getBytesFromFile(new File(classesPath + className + ".class"));
+    }
+
+    private ManipulatedClassLoader manipulate(String className, String ... extraClasses) throws Exception {
+        Manipulator manipulator = new Manipulator(this.getClass().getClassLoader());
+
+        byte[] originalClass = getTestClassBytes(className);
+
+        manipulator.prepare(originalClass);
+        Collection<String> innerClasses = manipulator.getInnerClasses();
+        Map<String, byte[]> originalInnerClasses = new HashMap<>();
+        for (String innerClass : innerClasses) {
+            byte[] originalInnerClass = getTestClassBytes(innerClass);
+            manipulator.prepareInnerClass(innerClass, originalInnerClass);
+            originalInnerClasses.put(innerClass, originalInnerClass);
+        }
+
+        byte[] manipulatedClass = manipulator.manipulate(originalClass);
+        ManipulatedClassLoader classloader = new ManipulatedClassLoader(className.replace('/', '.'), manipulatedClass, manipulator);
+        for (String innerClass : innerClasses) {
+            byte[] originalInnerClass = originalInnerClasses.get(innerClass);
+            byte[] manipulatedInnerClass = manipulator.manipulateInnerClass(innerClass, originalInnerClass);
+
+            classloader.addInnerClass(innerClass.replace('/', '.'), manipulatedInnerClass);
+        }
+
+        for (String extraClass : extraClasses) {
+            byte[] extraClassBytes = getTestClassBytes(extraClass);
+            classloader.addInnerClass(extraClass.replace('/', '.'), extraClassBytes);
+
+        }
+
+        return classloader;
+    }
+
+    public void testClassLoaderInnerClassAlreadyExists() throws Exception {
+        ManipulatedClassLoader classloader = new ManipulatedClassLoader("", new byte[0]);
+        String className = "test";
+        classloader.addInnerClass(className, new byte[0]);
+        try {
+            classloader.addInnerClass(className, new byte[0]);
+            fail("Expected IllegalStateException here.");
+        } catch (Exception e) {
+            assertTrue("Expected IllegalStateException, but got " + e.getClass().getName(), (e instanceof IllegalStateException));
+            assertEquals(e.getMessage(), ManipulatedClassLoader.CLASS_ALREADY_EXISTS_EXCEPTION_MESSAGE.apply(className));
+        }
+    }
+
+    private <T> Constructor<T> getInstanceManagerConstructor(Class<T> clazz) {
+        Constructor[] csts = clazz.getDeclaredConstructors();
+        for (Constructor constructor : csts) {
+            System.out.println(Arrays.asList(constructor.getParameterTypes()));
+            if (constructor.getParameterTypes().length == 1 &&
+                    constructor.getParameterTypes()[0].equals(InstanceManager.class)) {
+                constructor.setAccessible(true);
+                return constructor;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * This test is for the construction where an static method starts an anonymous inner class. The issue is that
+     * the anonymous inner class is not static by itself, but due to the construction via a static method effectively
+     * it is. See PTX-9242
+     *
+     * @throws Exception
+     */
+    public void testManipulatingStaticInnerClass() throws Exception {
+        // Not that when the next line results in an IllegalStateException with the message that test/StaticInnerClass$1
+        // already exists, this will be an indication that the inner class test/StaticInnerClass$1 is manipulated while
+        // that must be prevented
+        ManipulatedClassLoader classLoader = manipulate("test/StaticInnerClass", "test/StaticInnerClass$1");
+        classLoader.dump();
+        Class cl = classLoader.findClass("test.StaticInnerClass");
+        Assert.assertNotNull(cl);
+        Assert.assertNotNull(classLoader.getManipulator().getManipulationMetadata());
+
+        Constructor constructor = getInstanceManagerConstructor(cl);
+        Assert.assertNotNull(constructor);
+
+        Object instance = constructor.newInstance(new Object[]{new InstanceManager()});
+
+        String testValue = "This Is a test string";
+        int expectedTestValue = testValue.hashCode();
+
+        Method staticMethod = cl.getMethod("testStatic", new Class[]{String.class});
+        // check that we don't get a 'java.lang.NoSuchFieldError: this$0'.
+        Assert.assertEquals(expectedTestValue, staticMethod.invoke(instance, new Object[]{testValue}));
+
+        Method nonStaticMethod = cl.getMethod("testNonStatic", new Class[]{String.class});
+        // check that the non static method calls the instance manager
+        Assert.assertEquals(expectedTestValue * 2, nonStaticMethod.invoke(instance, new Object[]{testValue}));
+    }
+
+    public void testManipulatingStaticInnerClassWithOutsideFieldAccess() throws Exception {
+        // Not that when the next line results in an IllegalStateException with the message that test/StaticInnerClass$1
+        // already exists, this will be an indication that the inner class test/StaticInnerClass$1 is manipulated while
+        // that must be prevented
+        ManipulatedClassLoader classLoader = manipulate("test/StaticInnerClassWithOutsideFieldAccess$Factory", "test/StaticInnerClassWithOutsideFieldAccess");
+        Class factoryClass = classLoader.findClass("test.StaticInnerClassWithOutsideFieldAccess$Factory");
+        Class instanceClass = classLoader.findClass("test.StaticInnerClassWithOutsideFieldAccess");
+        Assert.assertNotNull(factoryClass);
+        Assert.assertNotNull(classLoader.getManipulator().getManipulationMetadata());
+
+        Constructor constructor = getInstanceManagerConstructor(factoryClass);
+        Assert.assertNotNull(constructor);
+
+        Object factory = constructor.newInstance(new Object[]{new InstanceManager()});
+
+        Method createCall = factoryClass.getMethod("create", new Class[]{});
+
+        Object instance = createCall.invoke(factory, new Object[0]);
+        Method testCall = instanceClass.getMethod("testCall", new Class[]{String.class});
+        // check that we don't get a 'java.lang.NoSuchFieldError: this$0'.
+        Assert.assertEquals("", testCall.invoke(instance, new Object[]{"value"}));
     }
 
     public void testManipulatingTheSimplePojo() throws Exception {
