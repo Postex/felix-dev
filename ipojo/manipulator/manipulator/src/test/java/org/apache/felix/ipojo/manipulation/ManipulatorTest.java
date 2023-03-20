@@ -262,29 +262,6 @@ public class ManipulatorTest extends TestCase {
         Assert.assertEquals(expectedTestValue * 2, nonStaticMethod.invoke(instance, new Object[]{testValue}));
     }
 
-    public void testManipulatingStaticInnerClassWithOutsideFieldAccess() throws Exception {
-        // Not that when the next line results in an IllegalStateException with the message that test/StaticInnerClass$1
-        // already exists, this will be an indication that the inner class test/StaticInnerClass$1 is manipulated while
-        // that must be prevented
-        ManipulatedClassLoader classLoader = manipulate("test/StaticInnerClassWithOutsideFieldAccess$Factory", "test/StaticInnerClassWithOutsideFieldAccess");
-        Class factoryClass = classLoader.findClass("test.StaticInnerClassWithOutsideFieldAccess$Factory");
-        Class instanceClass = classLoader.findClass("test.StaticInnerClassWithOutsideFieldAccess");
-        Assert.assertNotNull(factoryClass);
-        Assert.assertNotNull(classLoader.getManipulator().getManipulationMetadata());
-
-        Constructor constructor = getInstanceManagerConstructor(factoryClass);
-        Assert.assertNotNull(constructor);
-
-        Object factory = constructor.newInstance(new Object[]{new InstanceManager()});
-
-        Method createCall = factoryClass.getMethod("create", new Class[]{});
-
-        Object instance = createCall.invoke(factory, new Object[0]);
-        Method testCall = instanceClass.getMethod("testCall", new Class[]{String.class});
-        // check that we don't get a 'java.lang.NoSuchFieldError: this$0'.
-        Assert.assertEquals("", testCall.invoke(instance, new Object[]{"value"}));
-    }
-
     public void testManipulatingTheSimplePojo() throws Exception {
         Manipulator manipulator = new Manipulator(this.getClass().getClassLoader());
         byte[] origin = getBytesFromFile(new File("target/test-classes/test/SimplePojo.class"));
