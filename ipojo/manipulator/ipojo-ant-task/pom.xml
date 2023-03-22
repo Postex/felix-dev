@@ -18,14 +18,13 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
+        <artifactId>org.apache.felix.ipojo.manipulator-project</artifactId>
         <groupId>org.apache.felix</groupId>
-        <artifactId>felix-parent</artifactId>
-        <version>8-SNAPSHOT</version>
-        <relativePath>../../../pom/pom.xml</relativePath>
+        <version>1.12.2-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>org.apache.felix.ipojo.ant</artifactId>
-    <version>1.12.2-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>Apache Felix iPOJO Ant Task</name>
 
@@ -129,35 +128,14 @@
                     <configLocation>http://felix.apache.org/ipojo/dev/checkstyle_ipojo.xml</configLocation>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.5</source>
-                    <target>1.5</target>
-                </configuration>
-            </plugin>
 
             <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
                 <configuration>
-                    <!-- check src only (except remote resources additions) -->
-                    <includes>
-                        <include>src/**</include>
-                    </includes>
                     <excludes>
                         <exclude>src/main/appended-resources/**</exclude>
-                        <exclude>src/main/resources/META-INF/services/org.apache.felix.ipojo.manipulator.spi.Module
-                        </exclude>
+                        <exclude>src/main/resources/META-INF/services/org.apache.felix.ipojo.manipulator.spi.Module</exclude>
                     </excludes>
                 </configuration>
             </plugin>

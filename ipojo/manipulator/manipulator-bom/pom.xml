@@ -21,19 +21,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
+    <artifactId>org.apache.felix.ipojo.manipulator-project</artifactId>
     <groupId>org.apache.felix</groupId>
-    <artifactId>felix-parent</artifactId>
-    <version>8-SNAPSHOT</version>
-    <relativePath>../../../pom/pom.xml</relativePath>
+    <version>1.12.2-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
-
   <artifactId>ipojo-manipulator-bom</artifactId>
-  <version>1.12.2-SNAPSHOT</version>
   <name>Apache Felix iPOJO Manipulator BOM</name>
   <packaging>pom</packaging>
 
   <properties>
-    <asm.version>9.4</asm.version>
     <metadata.version>1.6.0</metadata.version>
   </properties>
 
@@ -62,6 +59,11 @@
       <dependency>
         <groupId>org.ow2.asm</groupId>
         <artifactId>asm-util</artifactId>
+        <version>${asm.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.ow2.asm</groupId>
+        <artifactId>asm-tree</artifactId>
         <version>${asm.version}</version>
       </dependency>
       <dependency>

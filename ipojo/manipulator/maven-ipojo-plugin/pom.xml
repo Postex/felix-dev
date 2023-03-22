@@ -18,14 +18,14 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
+        <artifactId>org.apache.felix.ipojo.manipulator-project</artifactId>
         <groupId>org.apache.felix</groupId>
-        <artifactId>felix-parent</artifactId>
-        <version>8-SNAPSHOT</version>
-        <relativePath>../../../pom/pom.xml</relativePath>
+        <version>1.12.2-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>maven-ipojo-plugin</artifactId>
-    <version>1.12.2-SNAPSHOT</version>
+    <version>${project.parent.version}</version>
     <name>Apache Felix iPOJO Maven Plugin</name>
     <packaging>maven-plugin</packaging>
 
@@ -96,14 +96,6 @@
                     <enableRulesSummary>false</enableRulesSummary>
                     <violationSeverity>warning</violationSeverity>
                     <configLocation>http://felix.apache.org/ipojo/dev/checkstyle_ipojo.xml</configLocation>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>17</source>
-                    <target>17</target>
                 </configuration>
             </plugin>
 
