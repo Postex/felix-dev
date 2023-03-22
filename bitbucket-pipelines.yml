@@ -34,3 +34,4 @@ definitions:
       # For every commit on the master, release or patch branch
       - step: *build-test
       - step: *release
+
