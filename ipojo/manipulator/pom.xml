@@ -25,6 +25,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>org.apache.felix.ipojo.manipulator-project</artifactId>
+  <groupId>com.postex.org.apache.felix</groupId>
   <version>1.12.2-SNAPSHOT</version>
   <name>Apache Felix iPOJO Manipulator Project</name>
   <packaging>pom</packaging>

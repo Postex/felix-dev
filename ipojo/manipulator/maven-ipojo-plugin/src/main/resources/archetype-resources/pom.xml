@@ -10,9 +10,9 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>org.apache.felix</groupId>
+			<groupId>com.postex.org.apache.felix</groupId>
 			<artifactId>org.apache.felix.ipojo.annotations</artifactId>
-			<version>1.6.0</version>
+			<version>${version}</version>
 		</dependency>
 	</dependencies>
 
@@ -33,7 +33,7 @@
 				</configuration>
 			</plugin>
 			<plugin>
-				<groupId>org.apache.felix</groupId>
+				<groupId>com.postex.org.apache.felix</groupId>
 				<artifactId>maven-ipojo-plugin</artifactId>
 				<executions>
 					<execution>

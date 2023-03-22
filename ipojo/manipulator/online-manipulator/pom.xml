@@ -19,7 +19,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
         <artifactId>org.apache.felix.ipojo.manipulator-project</artifactId>
-        <groupId>org.apache.felix</groupId>
+        <groupId>com.postex.org.apache.felix</groupId>
         <version>1.12.2-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
@@ -58,11 +58,11 @@
             <artifactId>org.apache.felix.ipojo.metadata</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.felix</groupId>
+            <groupId>com.postex.org.apache.felix</groupId>
             <artifactId>org.apache.felix.ipojo.manipulator</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.felix</groupId>
+            <groupId>com.postex.org.apache.felix</groupId>
             <artifactId>org.apache.felix.ipojo.annotations</artifactId>
         </dependency>
         <dependency>
@@ -92,7 +92,7 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.apache.felix</groupId>
+                <groupId>com.postex.org.apache.felix</groupId>
                 <artifactId>ipojo-manipulator-bom</artifactId>
                 <version>${project.version}</version>
                 <type>pom</type>
@@ -109,16 +109,6 @@
             </resource>
         </resources>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <target>17</target>
-                    <source>17</source>
-                    <testTarget>17</testTarget>
-                    <testSource>17</testSource>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
@@ -151,7 +141,7 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.apache.felix</groupId>
+                <groupId>com.postex.org.apache.felix</groupId>
                 <artifactId>maven-ipojo-plugin</artifactId>
                 <version>${project.version}</version>
                 <executions>

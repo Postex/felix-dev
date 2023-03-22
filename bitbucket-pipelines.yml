@@ -1,0 +1,36 @@
+image:
+  name: 016106703915.dkr.ecr.eu-central-1.amazonaws.com/bb/pipelines:corretto-17
+  aws: 
+    access-key: $AWS_ACCESS_KEY_ID
+    secret-key: $AWS_SECRET_ACCESS_KEY
+
+definitions:
+  steps:
+   - step: &release
+        name: Release
+        caches:
+          - maven
+        script:
+          - export MAVEN_OPTS="$MAVEN_OPTS -Xmx2048m"
+          - mvn install -f pom/pom.xml
+          - cd ipojo/manipulator
+          - mvn-release
+          - mvn -B deploy
+    - step: &build-test
+        name: Compile and test code
+        caches:
+          - maven
+        script:
+          - export MAVEN_OPTS="$MAVEN_OPTS -Xmx2048m"
+          - mvn install -f pom/pom.xml
+          - mvn -B clean verify -f ipojo/manipulator/pom.xml
+
+  default:
+    # On every commit unless it is a commit on the master, release or patch branches
+    - step: *build-test
+
+  branches:
+    '{master,release/*,patch/*}':
+      # For every commit on the master, release or patch branch
+      - step: *build-test
+      - step: *release
