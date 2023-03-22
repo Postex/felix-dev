@@ -50,6 +50,10 @@ public class ManipulatedClassLoader extends ClassLoader {
         this.manipulator = manipulator;
     }
 
+    public ManipulatedClassLoader() {
+       this("", new byte[0], null);
+    }
+
     public Manipulator getManipulator() {
         return manipulator;
     }
@@ -66,7 +70,7 @@ public class ManipulatedClassLoader extends ClassLoader {
 
     public void addInnerClass(String name, byte[] clazz) {
         if (inner.containsKey(name)) {
-            throw new IllegalStateException(CLASS_ALREADY_EXISTS_EXCEPTION_MESSAGE.apply(name));
+           throw new IllegalStateException(CLASS_ALREADY_EXISTS_EXCEPTION_MESSAGE.apply(name));
         }
         inner.put(name, clazz);
     }

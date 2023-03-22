@@ -21,14 +21,11 @@ package org.apache.felix.ipojo.manipulation;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
-import org.apache.commons.io.IOUtils;
 import org.apache.felix.ipojo.InstanceManager;
 import org.apache.felix.ipojo.Pojo;
-import org.junit.Test;
 import org.mockito.Mockito;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.util.CheckClassAdapter;
-import test.StaticInnerClassWithOutsideFieldAccess;
 
 import java.io.*;
 import java.lang.reflect.Constructor;
@@ -196,7 +193,6 @@ public class ManipulatorTest extends TestCase {
         for (String extraClass : extraClasses) {
             byte[] extraClassBytes = getTestClassBytes(extraClass);
             classloader.addInnerClass(extraClass.replace('/', '.'), extraClassBytes);
-
         }
 
         return classloader;

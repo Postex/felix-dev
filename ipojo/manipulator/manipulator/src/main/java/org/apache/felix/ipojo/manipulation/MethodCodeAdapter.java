@@ -19,8 +19,6 @@
 
 package org.apache.felix.ipojo.manipulation;
 
-import java.util.Set;
-
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -33,15 +31,14 @@ import org.objectweb.asm.commons.GeneratorAdapter;
  */
 public class MethodCodeAdapter extends GeneratorAdapter implements Opcodes {
 
+    private GlobalManipulationFieldsRegistry m_manipulationFieldsRegistry;
+
     /**
      * The owner class of the field. m_owner : String
      */
     private String m_owner;
 
-    /**
-     * Contained fields.
-     */
-    private Set<String> m_fields;
+    private String method;
 
     /**
      * MethodCodeAdapter constructor.
@@ -50,12 +47,12 @@ public class MethodCodeAdapter extends GeneratorAdapter implements Opcodes {
      * @param access : Method access
      * @param name : Method name
      * @param desc : Method descriptor
-     * @param fields : Contained fields
      */
-    public MethodCodeAdapter(final MethodVisitor mv, final String owner, int access, String name, String desc, Set<String> fields) {
+    public MethodCodeAdapter(final MethodVisitor mv, final String owner, int access, String name, String desc, GlobalManipulationFieldsRegistry fieldsRegistry) {
         super(Opcodes.ASM9, mv, access, name, desc);
         m_owner = owner;
-        m_fields = fields;
+        m_manipulationFieldsRegistry = fieldsRegistry;
+        method = name;
     }
 
     /**
@@ -67,7 +64,7 @@ public class MethodCodeAdapter extends GeneratorAdapter implements Opcodes {
      * @param desc : descriptor of the field
      */
     public void visitFieldInsn(final int opcode, final String owner, final String name, final String desc) {
-        if (owner.equals(m_owner) && m_fields.contains(name)) {
+        if (m_manipulationFieldsRegistry.isFieldInManipulationScope(owner, name)) {
             if (opcode == GETFIELD) {
                 String gDesc = "()" + desc;
                 visitMethodInsn(INVOKEVIRTUAL, owner, "__get" + name, gDesc, false);

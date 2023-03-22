@@ -94,17 +94,6 @@ public class ClassManipulator extends ClassVisitor implements Opcodes {
     private String m_owner;
 
     /**
-     * Set of fields detected in the class.
-     * (this set is given by the previous analysis)
-     */
-    private Set<String> m_fields;
-
-    /**
-     * Set of final fields detected in the class
-     */
-    private Set<String> m_finalFields;
-
-    /**
      * List of methods contained in the class.
      * This set contains method id.
      */
@@ -143,8 +132,6 @@ public class ClassManipulator extends ClassVisitor implements Opcodes {
     public ClassManipulator(ClassVisitor visitor, Manipulator manipulator) {
         super(Opcodes.ASM9, visitor);
         m_manipulator = manipulator;
-        m_fields = manipulator.getFields().keySet();
-        m_finalFields = manipulator.getFinalFields();
         m_visitedMethods = manipulator.getMethods();
     }
 
@@ -209,12 +196,13 @@ public class ClassManipulator extends ClassVisitor implements Opcodes {
 
             // Insert the new constructor
             MethodVisitor mv = super.visitMethod(ACC_PRIVATE, "<init>", newDesc, signature, exceptions);
-            return new ConstructorCodeAdapter(mv, m_owner, m_fields, m_finalFields, ACC_PRIVATE, name, newDesc, m_superclass);
+            return new ConstructorCodeAdapter(mv, m_owner, m_manipulator.getFieldsRegistry(), ACC_PRIVATE, name, newDesc, m_superclass);
         }
 
+        // check for synthetic method (field access to inner class), for jdk10 or less
         if ((access & ACC_SYNTHETIC) == ACC_SYNTHETIC && name.startsWith("access$")) {
             MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-            return new MethodCodeAdapter(mv, m_owner, access, name, desc, m_fields);
+            return new MethodCodeAdapter(mv, m_owner, access, name, desc, m_manipulator.getFieldsRegistry());
         }
 
         // Do nothing on static methods
@@ -240,7 +228,7 @@ public class ClassManipulator extends ClassVisitor implements Opcodes {
         }
 
         MethodVisitor mv = super.visitMethod(ACC_PRIVATE, PREFIX + name, desc, signature, exceptions);
-        return new MethodCodeAdapter(mv, m_owner, ACC_PRIVATE, PREFIX + name, desc, m_fields);
+        return new MethodCodeAdapter(mv, m_owner, ACC_PRIVATE, PREFIX + name, desc, m_manipulator.getFieldsRegistry());
     }
 
     /**
@@ -725,7 +713,7 @@ public class ClassManipulator extends ClassVisitor implements Opcodes {
         mv.visitVarInsn(ALOAD, 2);
         Label endif = new Label();
         mv.visitJumpInsn(IFNULL, endif);
-        for (String field : m_fields) {
+        for (String field : m_manipulator.getFieldsRegistry().getFieldsForClass(m_owner).keySet()) {
             mv.visitVarInsn(ALOAD, 2);
             mv.visitLdcInsn(field);
             mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Set", "contains", "(Ljava/lang/Object;)Z", true);

@@ -41,15 +41,8 @@ public class Manipulator {
      * A classloader used to compute frames.
      */
     private final ClassLoader m_classLoader;
-    /**
-     * Store the visited fields : [name of the field, type of the field].
-     */
-    private Map<String, String> m_fields;
 
-    /**
-     * Store th visited final fields
-     */
-    private Set<String> m_finalFields;
+    private GlobalManipulationFieldsRegistry m_manipulationFieldsRegistry;
 
     /**
      * Store the interface implemented by the class.
@@ -86,9 +79,14 @@ public class Manipulator {
      */
     private String m_className;
 
-    public Manipulator(ClassLoader loader) {
+    public Manipulator(ClassLoader loader, GlobalManipulationFieldsRegistry fieldsRegistry) {
         // No classloader set, use current one.
         m_classLoader = loader;
+        m_manipulationFieldsRegistry = fieldsRegistry;
+    }
+
+    public Manipulator(ClassLoader loader) {
+        this(loader, new GlobalManipulationFieldsRegistry());
     }
 
     /**
@@ -101,12 +99,10 @@ public class Manipulator {
 
         // First check if the class is already manipulated :
         ClassReader ckReader = new ClassReader(is);
-        ClassChecker ck = new ClassChecker();
+        ClassChecker ck = new ClassChecker(m_manipulationFieldsRegistry);
         ckReader.accept(ck, ClassReader.SKIP_FRAMES);
         is.close();
 
-        m_fields = ck.getFields(); // Get visited fields (contains only POJO fields)
-        m_finalFields = ck.getFinalFields();
         m_className = ck.getClassName();
 
         // Get interfaces and super class.
@@ -149,6 +145,10 @@ public class Manipulator {
         }
     }
 
+    public GlobalManipulationFieldsRegistry getFieldsRegistry() {
+        return m_manipulationFieldsRegistry;
+    }
+
     /**
      * Checks whether the class was already manipulated.
      * @return {@code true} if the class was already manipulated, {@code false} otherwise
@@ -181,7 +181,7 @@ public class Manipulator {
             elem.addElement(itf);
         }
 
-        for (Map.Entry<String, String> f : m_fields.entrySet()) {
+        for (Map.Entry<String, String> f : m_manipulationFieldsRegistry.getFieldsForClass(m_className).entrySet()) {
             Element field = new Element("Field", "");
             Attribute attName = new Attribute("name", f.getKey());
             Attribute attType = new Attribute("type", f.getValue());
@@ -219,14 +219,6 @@ public class Manipulator {
         } else {
             return clazz.substring(clazz.indexOf("$") +1);
         }
-    }
-
-    public Map<String, String> getFields() {
-        return m_fields;
-    }
-
-    public Set<String> getFinalFields(){
-        return m_finalFields;
     }
 
     public List<MethodDescriptor> getMethods() {
@@ -283,7 +275,7 @@ public class Manipulator {
 
             ClassReader cr = new ClassReader(is1);
             ClassWriter cw = new ClassLoaderAwareClassWriter(ClassWriter.COMPUTE_FRAMES, inner, null, m_classLoader);
-            InnerClassAdapter adapter = new InnerClassAdapter(inner, cw, m_className, this);
+            InnerClassAdapter adapter = new InnerClassAdapter(inner, cw, m_className, m_manipulationFieldsRegistry, this);
             if (m_version >= Opcodes.V1_6) {
                 cr.accept(adapter, ClassReader.EXPAND_FRAMES);
             } else {

@@ -39,6 +39,8 @@ import java.util.Set;
  */
 public class ConstructorCodeAdapter extends GeneratorAdapter implements Opcodes {
 
+    private GlobalManipulationFieldsRegistry m_manipulationFieldsRegistry;
+
     /**
      * The class containing the field.
      * m_owner : String
@@ -56,34 +58,20 @@ public class ConstructorCodeAdapter extends GeneratorAdapter implements Opcodes 
     private String m_superClass;
 
     /**
-     * Set of contained fields.
-     */
-    private Set<String> m_fields;
-
-    /**
-     * Set of contained final fields
-     */
-    private Set<String> m_finalFields;
-
-
-    /**
      * PropertyCodeAdapter constructor.
      * A new FiledCodeAdapter should be create for each method visit.
      *
      * @param mv          the MethodVisitor
      * @param owner       the name of the class
-     * @param fields      the list of contained fields
-     * @param finalFields the list of contained final fields
      * @param access      the constructor access
      * @param name        the name
      * @param desc        the constructor descriptor
      */
-    public ConstructorCodeAdapter(final MethodVisitor mv, final String owner, Set<String> fields, Set<String> finalFields, int access, String name, String desc, String superClass) {
+    public ConstructorCodeAdapter(final MethodVisitor mv, final String owner, GlobalManipulationFieldsRegistry fieldsRegistry, int access, String name, String desc, String superClass) {
         super(Opcodes.ASM9, mv, access, name, desc);
         m_owner = owner;
         m_superDetected = false;
-        m_fields = fields;
-        m_finalFields = finalFields;
+        m_manipulationFieldsRegistry = fieldsRegistry;
         m_superClass = superClass;
     }
 
@@ -139,7 +127,6 @@ public class ConstructorCodeAdapter extends GeneratorAdapter implements Opcodes 
 
     }
 
-
     /**
      * Adapts field accesses.
      * If the field is owned by the visited class:
@@ -159,13 +146,13 @@ public class ConstructorCodeAdapter extends GeneratorAdapter implements Opcodes 
             final String owner,
             final String name,
             final String desc) {
-        if (m_fields.contains(name) && m_owner.equals(owner)) {
+        if (m_manipulationFieldsRegistry.isFieldInManipulationScope(owner, name)) {
             if (opcode == GETFIELD) {
                 String gDesc = "()" + desc;
                 mv.visitMethodInsn(INVOKEVIRTUAL, owner, "__get" + name, gDesc, false);
                 return;
             } else if (opcode == PUTFIELD) {
-                if (m_finalFields.contains(name)) {
+                if (m_manipulationFieldsRegistry.isFieldFinal(owner, name)) {
                     mv.visitFieldInsn(PUTFIELD, owner, name, desc);
                     mv.visitVarInsn(ALOAD, 0);
                     mv.visitVarInsn(ALOAD, 0);
@@ -176,6 +163,7 @@ public class ConstructorCodeAdapter extends GeneratorAdapter implements Opcodes 
                 return;
             }
         }
+
         super.visitFieldInsn(opcode, owner, name, desc);
     }
 
@@ -189,7 +177,7 @@ public class ConstructorCodeAdapter extends GeneratorAdapter implements Opcodes 
      * @param name   the method name
      * @param desc   the method descriptor
      * @param itf    if the method's owner class is an interface
-     * @see org.objectweb.asm.commons.GeneratorAdapter#visitMethodInsn(int, java.lang.String, java.lang.String, java.lang.String)
+     * @see org.objectweb.asm.commons.GeneratorAdapter#visitMethodInsn(int, java.lang.String, java.lang.String, java.lang.String, boolean)
      */
     public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
 

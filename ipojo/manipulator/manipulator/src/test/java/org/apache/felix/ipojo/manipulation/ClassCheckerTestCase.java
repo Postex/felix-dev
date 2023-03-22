@@ -34,6 +34,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ClassCheckerTestCase extends TestCase {
+    private GlobalManipulationFieldsRegistry fieldsRegistry;
 
     public void testIsAlreadyManipulatedWithNotManipulatedResource() throws Exception {
         ClassChecker checker = check(resource("test/SimplePojo.class"));
@@ -56,11 +57,11 @@ public class ClassCheckerTestCase extends TestCase {
         assertNull(checker.getSuperClass());
 
         // Check inner classes
-        Collection<String> inner = checker.getInnerClasses();
+        Collection<String> inner = checker.getInnerClassesAndMethods().keySet();
         assertTrue(inner.isEmpty());
 
         // Ensure fields are correctly filtered
-        Map<String, String> fields = checker.getFields();
+        Map<String, String> fields = fieldsRegistry.getFieldsForClass("test/AnnotatedComponent");
         assertEquals(1, fields.size());
         assertEquals("java.lang.String", fields.get("prop"));
 
@@ -116,7 +117,8 @@ public class ClassCheckerTestCase extends TestCase {
     }
 
     private ClassChecker check(byte[] resource) throws Exception {
-        ClassChecker checker = new ClassChecker();
+        fieldsRegistry = new GlobalManipulationFieldsRegistry();
+        ClassChecker checker = new ClassChecker(fieldsRegistry);
         ByteArrayInputStream is = new ByteArrayInputStream(resource);
         try {
             ClassReader classReader = new ClassReader(is);

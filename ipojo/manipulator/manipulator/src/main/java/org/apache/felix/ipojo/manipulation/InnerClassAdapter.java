@@ -43,6 +43,8 @@ public class InnerClassAdapter extends ClassVisitor implements Opcodes {
      */
     private final Manipulator m_manipulator;
 
+    private GlobalManipulationFieldsRegistry m_manipulationFieldsRegistry;
+
     /**
      * The name of the inner class. This name is only define in the outer class.
      */
@@ -57,10 +59,6 @@ public class InnerClassAdapter extends ClassVisitor implements Opcodes {
      * Implementation class name.
      */
     private String m_outer;
-    /**
-     * List of fields of the implementation class.
-     */
-    private Set<String> m_fields;
 
     /**
      * Creates the inner class adapter.
@@ -71,13 +69,14 @@ public class InnerClassAdapter extends ClassVisitor implements Opcodes {
      * @param manipulator the manipulator having manipulated the outer class.
      */
     public InnerClassAdapter(String name, ClassVisitor visitor, String outerClassName,
+                             GlobalManipulationFieldsRegistry fieldsRegistry,
                              Manipulator manipulator) {
         super(Opcodes.ASM9, visitor);
         m_name = name;
         m_simpleName = m_name.substring(m_name.indexOf("$") + 1);
         m_outer = outerClassName;
         m_manipulator = manipulator;
-        m_fields = manipulator.getFields().keySet();
+        m_manipulationFieldsRegistry = fieldsRegistry;
     }
 
     /**
@@ -111,11 +110,10 @@ public class InnerClassAdapter extends ClassVisitor implements Opcodes {
             if (name.equals("<init>")) {
                 // We change the field access from the constructor, but we don't generate the wrapper.
                 MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-                return new MethodCodeAdapter(mv, m_outer, access, name, desc, m_fields);
+                return new MethodCodeAdapter(mv, m_outer, access, name, desc, m_manipulationFieldsRegistry);
             }
 
             // For all non constructor methods
-
             MethodDescriptor md = getMethodDescriptor(name, desc);
             if (md == null) {
                 generateMethodWrapper(access, name, desc, signature, exceptions, null, null,
@@ -129,7 +127,7 @@ public class InnerClassAdapter extends ClassVisitor implements Opcodes {
             // The new name is the method name prefixed by the PREFIX.
             MethodVisitor mv = super.visitMethod(ACC_PRIVATE, ClassManipulator.PREFIX + name, desc, signature,
                     exceptions);
-            return new MethodCodeAdapter(mv, m_outer, ACC_PRIVATE,  ClassManipulator.PREFIX + name, desc, m_fields);
+            return new MethodCodeAdapter(mv, m_outer, ACC_PRIVATE,  ClassManipulator.PREFIX + name, desc, m_manipulationFieldsRegistry);
         } else {
             return super.visitMethod(access, name, desc, signature, exceptions);
         }
@@ -324,7 +322,7 @@ public class InnerClassAdapter extends ClassVisitor implements Opcodes {
     /**
      * Gets the method descriptor for the specified name and descriptor.
      * The method descriptor is looked inside the
-     * {@link ClassManipulator#m_visitedMethods}
+     * {@link Manipulator#getMethodsFromInnerClass}
      * @param name the name of the method
      * @param desc the descriptor of the method
      * @return the method descriptor or <code>null</code> if not found.

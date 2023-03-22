@@ -19,11 +19,15 @@
 
 package org.apache.felix.ipojo.manipulator;
 
+import org.apache.felix.ipojo.manipulation.GlobalManipulationFieldsRegistry;
 import org.apache.felix.ipojo.manipulation.Manipulator;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A {@code ManipulationEngine} is responsible to drive the component's
@@ -97,6 +101,9 @@ public class ManipulationEngine {
         // Iterates over the list of discovered components
         // Note that this list includes components from metadata.xml AND from annotations
 
+        List<PreparedManipulationUnit> preparedManipulationUnits = new ArrayList<>();
+        GlobalManipulationFieldsRegistry fieldsRegistry = new GlobalManipulationFieldsRegistry();
+
         for (ManipulationUnit info : m_manipulationUnits) {
 
             byte[] bytecode;
@@ -114,7 +121,8 @@ public class ManipulationEngine {
                 // Should always be the case
 
                 // Manipulation preparation
-                Manipulator manipulator = new Manipulator(m_classLoader);
+                Manipulator manipulator = new Manipulator(m_classLoader, fieldsRegistry);
+                preparedManipulationUnits.add(new PreparedManipulationUnit(info, result, manipulator, bytecode));
                 try {
                     manipulator.prepare(bytecode);
                 } catch (IOException e) {
@@ -136,50 +144,56 @@ public class ManipulationEngine {
                         return;
                     }
                 }
+            }
+        }
+        for (PreparedManipulationUnit preparedManipulationUnit : preparedManipulationUnits) {
+            ManipulationUnit info = preparedManipulationUnit.getManipulationUnit();
+            Manipulator manipulator = preparedManipulationUnit.getManipulator();
+            ManipulationResultVisitor result = preparedManipulationUnit.getResultVisitor();
+            byte[] bytecode = preparedManipulationUnit.getBytecode();
 
-                // Now manipulate the classes.
+            // Now manipulate the classes.
+            try {
+                byte[] out = manipulator.manipulate(bytecode);
+                // Call the visitor
+                result.visitManipulatedResource(info.getResourcePath(), out);
+            } catch (IOException e) {
+                m_reporter.error("Cannot manipulate the class " + info.getClassName() + " : " + e.getMessage());
+                return;
+            }
+
+            // Visit inner classes
+            for (String inner : manipulator.getInnerClasses()) {
+                // Get the bytecode and start manipulation
+                String resourcePath = inner + ".class";
+                String outerClassInternalName = info.getClassName().replace('.', '/');
+                byte[] innerClassBytecode;
                 try {
-                    byte[] out = manipulator.manipulate(bytecode);
-                    // Call the visitor
-                    result.visitManipulatedResource(info.getResourcePath(), out);
+                    innerClassBytecode = m_store.read(resourcePath);
                 } catch (IOException e) {
-                    m_reporter.error("Cannot manipulate the class " + info.getClassName() + " : " + e.getMessage());
+                    m_reporter.error("Cannot find inner class '" + resourcePath + "'");
                     return;
                 }
 
-                // Visit inner classes
-                for (String inner : manipulator.getInnerClasses()) {
-                    // Get the bytecode and start manipulation
-                    String resourcePath = inner + ".class";
-                    String outerClassInternalName = info.getClassName().replace('.', '/');
-                    byte[] innerClassBytecode;
-                    try {
-                        innerClassBytecode = m_store.read(resourcePath);
-                    } catch (IOException e) {
-                        m_reporter.error("Cannot find inner class '" + resourcePath + "'");
-                        return;
-                    }
-
-                    // Manipulate inner class
-                    // Notice that (for performance reason) re-use the class version information
-                    // discovered in the main class instead of re-parsing the inner class to find
-                    // its own class version
-                    try {
-                        byte[] manipulated = manipulator.manipulateInnerClass(inner, innerClassBytecode);
-                        // Propagate manipulated resource
-                        result.visitManipulatedResource(resourcePath, manipulated);
-                    } catch (IOException e) {
-                        m_reporter.error("Cannot manipulate inner class '" + resourcePath + "'");
-                        return;
-                    }
+                // Manipulate inner class
+                // Notice that (for performance reason) re-use the class version information
+                // discovered in the main class instead of re-parsing the inner class to find
+                // its own class version
+                try {
+                    byte[] manipulated = manipulator.manipulateInnerClass(inner, innerClassBytecode);
+                    // Propagate manipulated resource
+                    result.visitManipulatedResource(resourcePath, manipulated);
+                } catch (IOException e) {
+                    m_reporter.error("Cannot manipulate inner class '" + resourcePath + "'");
+                    return;
                 }
-
-                // Compute manipulation metadata
-                result.visitClassStructure(manipulator.getManipulationMetadata());
-
-                // All resources have been manipulated for this component
-                result.visitEnd();
             }
+
+            // Compute manipulation metadata
+            result.visitClassStructure(manipulator.getManipulationMetadata());
+
+            // All resources have been manipulated for this component
+            result.visitEnd();
         }
     }
 }
